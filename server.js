@@ -149,6 +149,21 @@ function findCustomer(num) {
   const n = String(num || '').replace(/\D/g, '');
   return CUSTOMERS.find((c) => c.customer_number === n) || null;
 }
+// Speech recognition can add, drop or change one digit ("3 0 0 0 1 2 5"). Accept a number one edit away,
+// but ONLY together with a matching surname, so verification still depends on the surname.
+function editDistance(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+function findCustomerFuzzy(num, surname) {
+  const n = String(num || '').replace(/\D/g, '');
+  if (!n || !clean(surname)) return null;
+  const hits = CUSTOMERS.filter((c) => editDistance(n, c.customer_number) <= 1 && surnameMatches(c, surname));
+  return hits.length === 1 ? hits[0] : null;
+}
 function surnameMatches(c, surname) {
   const s = norm(surname);
   if (!s) return false;
@@ -235,16 +250,19 @@ app.use('/api', express.text({ type: '*/*', limit: '64kb' }), (req, res, next) =
 app.get('/healthz', (req, res) => res.json({ ok: true, requests: state.requests.length }));
 
 app.post('/api/customer/lookup', agentAuth, (req, res) => {
-  const c = findCustomer(req.body.customer_number);
-  if (!c) return res.json({ found: false, message: 'No customer with that number. Ask the caller to repeat the 6-digit customer number digit by digit.' });
   const surname = clean(req.body.surname);
+  let c = findCustomer(req.body.customer_number);
+  let corrected = false;
+  if (!c) { c = findCustomerFuzzy(req.body.customer_number, surname); corrected = Boolean(c); }
+  if (!c) return res.json({ found: false, message: 'No customer with that number. Read the number back to the caller digit by digit and ask them to confirm or repeat it. Customer numbers have exactly 6 digits.' });
   if (!surname) return res.json({ found: true, verified: false, message: 'Customer number found. Ask for the account holder\'s surname to verify, then call again with surname.' });
   if (!surnameMatches(c, surname)) return res.json({ found: true, verified: false, message: 'The surname does not match this customer number. Ask the caller to repeat the surname or the customer number. Do not share any account details.' });
   const acct = state.accounts[c.customer_number];
   const open = state.requests.filter((r) => r.customer_number === c.customer_number && !['completed', 'rejected'].includes(r.status));
   res.json({
     found: true, verified: true,
-    customer_number: c.customer_number, account_holder: c.name_el, account_holder_latin: c.name_en,
+    customer_number: c.customer_number,
+    ...(corrected ? { note: `The number heard (${String(req.body.customer_number).replace(/\D/g, '')}) was corrected to ${c.customer_number} using the surname. Use ${c.customer_number} in all further tool calls.` } : {}), account_holder: c.name_el, account_holder_latin: c.name_en,
     supplies: acct.supplies.map((s) => ({ supply_type: s.type, label: SUPPLY_LABEL[s.type], address: s.address, plan: s.plan,
       supply_number_last4: s.supply_number.replace(/\s/g, '').slice(-4), balance_due_eur: balance(s) })),
     has_electricity_and_gas: acct.supplies.length > 1,
