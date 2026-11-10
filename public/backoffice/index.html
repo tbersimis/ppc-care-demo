@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Κέντρο αιτημάτων | ΔΕΗ demo</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #EEF3F9; --surface: #FFFFFF; --line: #D8E0EB; --text: #14213D; --muted: #55627A;
+    --navy: #0B1F4B; --volt: #0089C2; --volt-soft: #E0F3FB; --flame: #C9530F; --flame-soft: #FDEBDD;
+    --amber: #8A5A00; --amber-soft: #FFF2D1; --green: #2F6B3A; --green-soft: #E4F1E6;
+    --red: #B3261E; --red-soft: #FBE7E6; --violet: #5B3FA8; --violet-soft: #EEE9FA; --fresh: #FFF6D6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #0B1324; --surface: #121D33; --line: #24324E; --text: #E4EBF7; --muted: #9AA9C4;
+      --navy: #DCE6FA; --volt: #6CCBF2; --volt-soft: #10324A; --flame: #FFA06B; --flame-soft: #3A2414;
+      --amber: #F2C14E; --amber-soft: #3A2E12; --green: #8FCB98; --green-soft: #1B2F1F;
+      --red: #FF8A80; --red-soft: #3A1A1A; --violet: #C3B2F5; --violet-soft: #2A2244; --fresh: #3A3416;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1.5 "Commissioner", "Segoe UI", "Noto Sans", Arial, sans-serif; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  :focus-visible { outline: 3px solid var(--volt); outline-offset: 2px; }
+  button { font: inherit; cursor: pointer; }
+  .wrap { width: min(1240px, 100% - 2rem); margin-inline: auto; }
+  header { background: var(--surface); border-bottom: 1px solid var(--line); border-top: 5px solid #00A3E0; padding-top: env(safe-area-inset-top, 0px); }
+  header .wrap { display: flex; justify-content: space-between; align-items: center; gap: 1rem; min-height: 64px; flex-wrap: wrap; }
+  .title { display: flex; align-items: baseline; gap: .75rem; flex-wrap: wrap; }
+  .title h1 { margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--navy); }
+  .title span { color: var(--muted); }
+  .live { display: inline-flex; align-items: center; gap: .45rem; color: var(--muted); font-size: .9rem; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); }
+  .live.stale .dot { background: var(--red); }
+
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.2rem; }
+  .stat b { display: block; font-size: 2rem; font-weight: 800; line-height: 1.1; }
+  .stat span { color: var(--muted); }
+  .stat.warn b { color: var(--red); }
+  @media (max-width: 760px) { .stats { grid-template-columns: 1fr 1fr; } }
+
+  .layout { display: grid; grid-template-columns: 1fr 360px; gap: 1.25rem; align-items: start; margin-bottom: 3rem; }
+  @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+
+  .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: .75rem; }
+  .tabs { display: inline-flex; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 3px; }
+  .tabs button { border: 0; background: none; color: var(--muted); padding: .4rem .8rem; border-radius: 6px; }
+  .tabs button[aria-pressed="true"] { background: var(--navy); color: var(--surface); }
+  .board-actions { display: flex; gap: .5rem; }
+  .ghost { background: none; border: 1px solid var(--line); color: var(--muted); padding: .45rem .9rem; border-radius: 8px; }
+  .ghost:hover { border-color: var(--red); color: var(--red); }
+
+  .list { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+  .item { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: 10px; padding: .9rem 1.1rem; display: grid; grid-template-columns: 1fr auto; gap: .5rem 1rem; transition: background-color 1.2s ease; }
+  .item.fresh { background: var(--fresh); }
+  .item.el { border-left-color: #00A3E0; }
+  .item.gas { border-left-color: #F26B1D; }
+  .item.acct { border-left-color: var(--violet); }
+  .item.redeem { border-left-color: var(--green); }
+  .line1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem .75rem; }
+  .id { font-weight: 800; letter-spacing: .03em; }
+  .kind { font-weight: 700; }
+  .tag { font-size: .78rem; padding: .1rem .55rem; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+  .t-received { background: var(--volt-soft); color: var(--volt); }
+  .t-in_progress { background: var(--amber-soft); color: var(--amber); }
+  .t-awaiting_documents, .t-awaiting_customer { background: var(--violet-soft); color: var(--violet); }
+  .t-completed { background: var(--green-soft); color: var(--green); }
+  .t-rejected { background: var(--red-soft); color: var(--red); }
+  .s-el { background: var(--volt-soft); color: var(--volt); }
+  .s-gas { background: var(--flame-soft); color: var(--flame); }
+  .s-all { background: var(--violet-soft); color: var(--violet); }
+  .who { color: var(--text); }
+  .meta { color: var(--muted); font-size: .88rem; }
+  .details { grid-column: 1 / 2; margin: 0; }
+  .newval { grid-column: 1 / 2; margin: 0; font-size: .92rem; }
+  .newval b { font-weight: 600; }
+  .actions { grid-column: 2; grid-row: 1 / span 3; display: flex; flex-direction: column; gap: .35rem; align-items: flex-end; }
+  .actions button { border: 1px solid var(--line); background: var(--surface); color: var(--text); padding: .35rem .7rem; border-radius: 6px; font-size: .9rem; white-space: nowrap; }
+  .actions button:hover { border-color: var(--volt); color: var(--volt); }
+  .credit { font-weight: 800; font-size: 1.25rem; color: var(--green); text-align: right; }
+  @media (max-width: 640px) { .item { grid-template-columns: 1fr; } .actions { grid-column: 1; grid-row: auto; flex-direction: row; flex-wrap: wrap; align-items: flex-start; } }
+
+  aside h2 { font-size: 1rem; margin: 0 0 .6rem; font-weight: 700; }
+  .cust { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .6rem; }
+  .cust .top { display: flex; justify-content: space-between; gap: .5rem; align-items: baseline; }
+  .cust .num { font-weight: 800; letter-spacing: .04em; }
+  .cust .name { font-weight: 600; }
+  .cust .sup { display: flex; justify-content: space-between; gap: .5rem; font-size: .9rem; margin-top: .35rem; }
+  .cust .sup .bal { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .cust .sup .bal.over { color: var(--red); }
+  .cust .miles { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+  .empty { background: var(--surface); border: 1.5px dashed var(--line); border-radius: 10px; padding: 2.5rem 1.5rem; text-align: center; color: var(--muted); }
+  .empty strong { display: block; color: var(--text); margin-bottom: .3rem; }
+  .error { color: var(--red); margin: 0 0 1rem; }
+  @media (prefers-reduced-motion: reduce) { .item { transition: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="title"><h1>Κέντρο αιτημάτων</h1><span>ΔΕΗ εξυπηρέτηση πελατών (demo)</span></div>
+    <div class="live" id="live" aria-live="polite"><span class="dot"></span><span id="live-text">Σύνδεση…</span></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="stats">
+    <div class="stat"><b id="s-today">0</b><span>Αιτήματα σήμερα</span></div>
+    <div class="stat"><b id="s-open">0</b><span>Ανοιχτά αιτήματα</span></div>
+    <div class="stat"><b id="s-miles">0</b><span>Μίλια που εξαργυρώθηκαν σήμερα</span></div>
+    <div class="stat warn"><b id="s-overdue">0</b><span>Πελάτες με ληξιπρόθεσμα</span></div>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="toolbar">
+        <div class="tabs" role="group" aria-label="Φίλτρο">
+          <button type="button" data-f="all" aria-pressed="true">Όλα</button>
+          <button type="button" data-f="today" aria-pressed="false">Σήμερα</button>
+          <button type="button" data-f="open" aria-pressed="false">Ανοιχτά</button>
+          <button type="button" data-f="completed" aria-pressed="false">Ολοκληρωμένα</button>
+          <button type="button" data-f="redemption" aria-pressed="false">Εξαργυρώσεις</button>
+        </div>
+        <div class="board-actions">
+          <button type="button" class="ghost" id="reset" title="Επαναφορά λογαριασμών, μιλίων και ιστορικού αιτημάτων demo">Επαναφορά demo</button>
+          <button type="button" class="ghost" id="clear" title="Διαγραφή όλων των αιτημάτων">Καθαρισμός</button>
+        </div>
+      </div>
+      <p class="error" id="error" hidden></p>
+      <ul class="list" id="list"></ul>
+    </div>
+    <aside>
+      <h2>Πελάτες demo</h2>
+      <div id="customers"></div>
+    </aside>
+  </div>
+</main>
+
+<script>
+(function () {
+  var TYPE = {
+    billing_address_change: 'Αλλαγή διεύθυνσης αποστολής', name_change: 'Αλλαγή ονόματος / υπόχρεου',
+    ebill_activation: 'Ενεργοποίηση e-λογαριασμού', direct_debit_activation: 'Πάγια εντολή',
+    payment_link: 'Σύνδεσμος πληρωμής', payment_arrangement: 'Διακανονισμός οφειλής', bill_dispute: 'Αμφισβήτηση λογαριασμού',
+    meter_reading: 'Ένδειξη μετρητή', rewards_linking: 'Σύνδεση Miles+Bonus', other: 'Άλλο αίτημα'
+  };
+  var STATUS = { received: 'Παραλήφθηκε', in_progress: 'Σε εξέλιξη', awaiting_documents: 'Αναμονή δικαιολογητικών',
+    awaiting_customer: 'Αναμονή πελάτη', completed: 'Ολοκληρώθηκε', rejected: 'Απορρίφθηκε' };
+  var SUPPLY = { electricity: ['Ρεύμα', 's-el', 'el'], gas: ['Φυσικό αέριο', 's-gas', 'gas'], all: ['Λογαριασμός πελάτη', 's-all', 'acct'] };
+  var CHANNEL = { 'Voice care line': 'Φωνητική εξυπηρέτηση', 'myΔΕΗ app': 'Εφαρμογή myΔΕΗ', 'PPC store': 'Κατάστημα ΔΕΗ' };
+  var LANG = { greek: 'ελληνικά', english: 'αγγλικά', french: 'γαλλικά', german: 'γερμανικά', italian: 'ιταλικά', spanish: 'ισπανικά',
+    russian: 'ρωσικά', albanian: 'αλβανικά', bulgarian: 'βουλγαρικά', romanian: 'ρουμανικά', arabic: 'αραβικά', ukrainian: 'ουκρανικά', turkish: 'τουρκικά' };
+  function lang(l) { return LANG[String(l || '').toLowerCase()] || l; }
+  var filter = 'all', items = [], customers = [], seen = null, freshUntil = {}, lastOk = 0, token = '';
+  try { token = sessionStorage.getItem('ppcAdminToken') || ''; } catch (e) {}
+  var $ = function (id) { return document.getElementById(id); };
+  var eur = new Intl.NumberFormat('el-GR', { style: 'currency', currency: 'EUR' });
+  var num = new Intl.NumberFormat('el-GR');
+
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function when(isoStr) {
+    var s = Math.max(0, Math.round((Date.now() - new Date(isoStr).getTime()) / 1000));
+    if (s < 60) return 'πριν ' + s + ' δευτ.';
+    if (s < 3600) return 'πριν ' + Math.round(s / 60) + ' λεπτά';
+    var d = new Date(isoStr), t = d.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
+    if (d.toDateString() === new Date().toDateString()) return 'σήμερα ' + t;
+    return d.toLocaleDateString('el-GR', { weekday: 'short', day: 'numeric', month: 'short' }) + ', ' + t;
+  }
+  function isToday(isoStr) { return new Date(isoStr).toDateString() === new Date().toDateString(); }
+  function isOpen(i) { return i.kind === 'request' && ['completed', 'rejected'].indexOf(i.status) === -1; }
+  function headers() { var h = { 'Content-Type': 'application/json' }; if (token) h['X-Admin-Token'] = token; return h; }
+  function send(method, url, body) {
+    return fetch(url, { method: method, headers: headers(), body: body ? JSON.stringify(body) : undefined }).then(function (r) {
+      if (r.status === 401) { var t = prompt('Κωδικός διαχειριστή'); if (t) { token = t.trim(); try { sessionStorage.setItem('ppcAdminToken', token); } catch (e) {} return send(method, url, body); } }
+      if (!r.ok) throw new Error('Απάντηση διακομιστή ' + r.status + '.');
+      return r.json();
+    });
+  }
+
+  function renderCustomers() {
+    $('customers').innerHTML = customers.map(function (c) {
+      var sups = c.supplies.map(function (s) {
+        return '<div class="sup"><span>' + (s.type === 'gas' ? '🔥 Φυσικό αέριο' : '⚡ Ρεύμα') + ', ' + esc(s.plan) + (s.direct_debit ? ' (πάγια)' : '') + '</span>' +
+          '<span class="bal' + (s.overdue ? ' over' : '') + '">' + eur.format(s.balance_due_eur) + '</span></div>';
+      }).join('');
+      var m = c.myrewards.member ? (c.myrewards.miles_linked ? num.format(c.myrewards.miles_balance) + ' μίλια Miles+Bonus' : 'myRewards, χωρίς σύνδεση Miles+Bonus') : 'Όχι μέλος myRewards';
+      return '<div class="cust"><div class="top"><span class="num">' + esc(c.customer_number) + '</span><span class="name">' + esc(c.name) + '</span></div>' + sups +
+        '<div class="miles">' + esc(m) + '</div></div>';
+    }).join('');
+    $('s-overdue').textContent = customers.filter(function (c) { return c.supplies.some(function (s) { return s.overdue; }); }).length;
+  }
+
+  function render() {
+    $('s-today').textContent = items.filter(function (i) { return i.kind === 'request' && isToday(i.created_at); }).length;
+    $('s-open').textContent = items.filter(isOpen).length;
+    $('s-miles').textContent = num.format(items.filter(function (i) { return i.kind === 'redemption' && isToday(i.created_at); }).reduce(function (n, i) { return n + i.miles_used; }, 0));
+
+    var shown = items.filter(function (i) {
+      if (filter === 'today') return isToday(i.created_at);
+      if (filter === 'open') return isOpen(i);
+      if (filter === 'completed') return i.kind === 'request' && i.status === 'completed';
+      if (filter === 'redemption') return i.kind === 'redemption';
+      return true;
+    });
+    if (!shown.length) {
+      $('list').innerHTML = '<li class="empty"><strong>' + (items.length ? 'Κανένα στοιχείο σε αυτή την προβολή' : 'Δεν υπάρχουν αιτήματα') + '</strong>' +
+        (items.length ? 'Επιλέξτε άλλο φίλτρο.' : 'Πατήστε «Επαναφορά demo» ή καλέστε την εξυπηρέτηση. Τα νέα αιτήματα εμφανίζονται εδώ σε λίγα δευτερόλεπτα.') + '</li>';
+      return;
+    }
+    $('list').innerHTML = shown.map(function (i) {
+      var fresh = (freshUntil[i.id] || 0) > Date.now() ? ' fresh' : '';
+      var sup = SUPPLY[i.supply_type] || SUPPLY.all;
+      if (i.kind === 'redemption') {
+        return '<li class="item redeem' + fresh + '"><div class="line1"><span class="id">' + esc(i.id) + '</span><span class="kind">Εξαργύρωση μιλίων</span>' +
+          '<span class="tag ' + sup[1] + '">' + sup[0] + '</span></div>' +
+          '<p class="details">' + esc(i.customer_name) + ' (' + esc(i.customer_number) + '): ' + num.format(i.miles_used) + ' μίλια, υπόλοιπο ' + num.format(i.miles_left) + '</p>' +
+          '<p class="newval meta">' + when(i.created_at) + ', Φωνητική εξυπηρέτηση</p>' +
+          '<div class="actions"><span class="credit">−' + eur.format(i.credit_eur) + '</span></div></li>';
+      }
+      var acts = '';
+      if (isOpen(i)) {
+        if (i.status !== 'in_progress') acts += '<button type="button" data-id="' + i.id + '" data-s="in_progress">Σε εξέλιξη</button>';
+        acts += '<button type="button" data-id="' + i.id + '" data-s="completed">Ολοκλήρωση</button>';
+        acts += '<button type="button" data-id="' + i.id + '" data-s="rejected">Απόρριψη</button>';
+      } else {
+        acts += '<button type="button" data-id="' + i.id + '" data-s="received">Επαναφορά</button>';
+      }
+      return '<li class="item ' + sup[2] + fresh + '"><div class="line1"><span class="id">' + esc(i.id) + '</span>' +
+        '<span class="kind">' + (TYPE[i.request_type] || esc(i.label)) + '</span>' +
+        '<span class="tag t-' + i.status + '">' + (STATUS[i.status] || i.status) + '</span>' +
+        '<span class="tag ' + sup[1] + '">' + sup[0] + '</span>' +
+        '<span class="who">' + esc(i.customer_name) + ' (' + esc(i.customer_number) + ')</span></div>' +
+        (i.details ? '<p class="details">' + esc(i.details) + '</p>' : '') +
+        (i.new_value ? '<p class="newval"><b>Νέα τιμή:</b> ' + esc(i.new_value) + '</p>' : '') +
+        '<p class="newval meta">' + when(i.created_at) + ', ' + esc(CHANNEL[i.channel] || i.channel || '') + (i.caller_language ? ', γλώσσα: ' + esc(lang(i.caller_language)) : '') + '</p>' +
+        '<div class="actions">' + acts + '</div></li>';
+    }).join('');
+  }
+
+  function poll() {
+    Promise.all([
+      fetch('/api/activity', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch('/api/customers', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    ]).then(function (res) {
+      items = res[0].items || [];
+      customers = res[1].customers || [];
+      var now = {};
+      items.forEach(function (i) { if (seen && !seen[i.id]) freshUntil[i.id] = Date.now() + 6000; now[i.id] = true; });
+      seen = now;
+      render(); renderCustomers();
+      lastOk = Date.now(); $('error').hidden = true;
+    }).catch(function () { $('error').hidden = false; $('error').textContent = 'Δεν υπάρχει σύνδεση με τον διακομιστή. Νέα προσπάθεια σε λίγα δευτερόλεπτα.'; });
+  }
+  function tick() {
+    if (!lastOk) return;
+    var s = Math.round((Date.now() - lastOk) / 1000);
+    $('live').classList.toggle('stale', s > 15);
+    $('live-text').textContent = s > 15 ? 'Χωρίς ενημέρωση' : 'Ζωντανά, ανανέωση κάθε 3 δευτ.';
+  }
+
+  document.querySelector('.tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    filter = b.dataset.f;
+    document.querySelectorAll('.tabs button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+    render();
+  });
+  $('list').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-id]'); if (!b) return;
+    b.disabled = true;
+    send('PATCH', '/api/requests/' + encodeURIComponent(b.dataset.id), { status: b.dataset.s }).then(poll)
+      .catch(function (err) { alert('Η ενημέρωση απέτυχε. ' + err.message); b.disabled = false; });
+  });
+  $('reset').addEventListener('click', function () {
+    if (!confirm('Επαναφορά demo; Λογαριασμοί, μίλια και αιτήματα επιστρέφουν στην αρχική κατάσταση.')) return;
+    seen = null;
+    send('DELETE', '/api/activity').then(poll).catch(function (err) { alert('Η επαναφορά απέτυχε. ' + err.message); });
+  });
+  $('clear').addEventListener('click', function () {
+    if (!confirm('Διαγραφή όλων των αιτημάτων;')) return;
+    seen = null;
+    send('DELETE', '/api/activity?mode=empty').then(poll).catch(function (err) { alert('Ο καθαρισμός απέτυχε. ' + err.message); });
+  });
+
+  poll();
+  setInterval(poll, 3000);
+  setInterval(tick, 1000);
+  setInterval(render, 30000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+Put the Click-to-Call files from your Live Hub SIP connection in this folder:
+
+  click-to-call-widget.js   the main file from the download (unchanged)
+  c2c-config.js             the content of basic.js (or advanced.js / advancedauthUrl.js)
+                            WITHOUT the surrounding <script> tags, with your values filled in
+
+The hotel page loads click-to-call-widget.js first and then c2c-config.js.
+If the example HTML in your download needs a different order or a widget tag,
+paste that markup into the #c2c-slot block in public/index.html instead.

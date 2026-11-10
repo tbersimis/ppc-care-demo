@@ -1,0 +1,3 @@
+Put the official PPC / ΔΕΗ logo in this folder as logo.svg (preferred) or logo.png.
+Use the file supplied by PPC or from their official media kit.
+The site shows the text "ΔΕΗ" until the file is there.
